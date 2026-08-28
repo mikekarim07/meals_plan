@@ -460,6 +460,9 @@ with st.form(f"form_{section}_{sub}"):
     for _, qrow in q_display.iterrows():
         qid = str(qrow["question_id"])
         qtext = str(qrow["pregunta"])
+        
+        if section == "Ingredientes":
+            qtext = qtext.replace("Califica: ", "")
         qtype = str(qrow["tipo_respuesta"])
         opts = question_options(qid)
 
