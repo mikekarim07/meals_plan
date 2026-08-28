@@ -49,24 +49,36 @@ def spreadsheet_id_from_secret(value: str) -> str:
     m = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", value)
     return m.group(1) if m else value
 
+
 @st.cache_resource
 def sheets_service():
-    cfg = dict(st.secrets["connections"]["gsheets"])
-    spreadsheet_secret = cfg.pop("spreadsheet", cfg.pop("spreadsheet_id", None))
-    if not spreadsheet_secret:
-        raise RuntimeError("Falta 'spreadsheet' o 'spreadsheet_id' en Secrets.")
+    import json
 
-    # TOML can preserve the PEM newlines, but this also supports escaped \n.
+    # Leer el JSON de la Service Account desde Streamlit Secrets
+    cfg = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+
+    # Corregir saltos de línea de la private key si fuera necesario
     if "private_key" in cfg:
-        cfg["private_key"] = str(cfg["private_key"]).replace("\\n", "\n")
+        cfg["private_key"] = cfg["private_key"].replace("\\n", "\n")
 
     creds = service_account.Credentials.from_service_account_info(
         cfg,
-        scopes=["https://www.googleapis.com/auth/spreadsheets"],
+        scopes=[
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ],
     )
-    service = build("sheets", "v4", credentials=creds, cache_discovery=False)
-    return service, spreadsheet_id_from_secret(spreadsheet_secret)
 
+    service = build(
+        "sheets",
+        "v4",
+        credentials=creds,
+        cache_discovery=False,
+    )
+
+    spreadsheet_id = st.secrets["SPREADSHEET_ID"]
+
+    return service, spreadsheet_id
 def api():
     return sheets_service()
 
